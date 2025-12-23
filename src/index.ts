@@ -3,13 +3,13 @@ import express from "express";
 //import cors from "cors";
 
 import { errorHandler } from "./middlewares/errorHandler";
+import { initDatabase, sequelize } from "./config/database";
+import { setupAssociations } from "./models/associations";
 
 // Routers (por ahora podés dejar solo los básicos)
 import routes from "./routes";
 
 // 👉 Estos quedan comentados en main
-// import { initDatabase } from "./utils/databaseService";
-// import { setupAssociations } from "./models/associations";
 // import { loadSchemaLimits } from "./utils/schemaLimits";
 // import { enableStrictMode } from "./utils/sqlStrictMode";
 // import { tenantMiddleware } from "./middlewares/tenant";
@@ -41,10 +41,12 @@ app.use(errorHandler);
  * ========================= */
 async function initServer() {
   try {
-    // setupAssociations();
-    // await initDatabase();
-    // await enableStrictMode();
-    // await loadSchemaLimits([]);
+    setupAssociations();
+    await initDatabase();
+
+    if (process.env.DB_SYNC === "true") {
+      await sequelize.sync({ alter: false });
+    }
 
     app.listen(port, () => {
       console.log(`⚡️[servidor]: Servidor corriendo en http://localhost:${port}`);

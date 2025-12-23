@@ -6,7 +6,7 @@ const portRaw = process.env.PORT;
 const PORT = portRaw ? Number(portRaw) : 3000;
 
 if (!Number.isFinite(PORT)) {
-  throw new Error("PORT must be a number");
+  throw new Error("PORT debe ser un número");
 }
 
 export const env = {
