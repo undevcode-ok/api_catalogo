@@ -3,6 +3,7 @@ import { ApiError } from "../utils/ApiError";
 import { ImageS3Service } from "../s3-image-module";
 import Catalogo from "../models/Catalogo";
 import CatalogoImage from "../models/CatalogoImage";
+import { logger } from "../utils/logger";
 
 const DEFAULT_FOLDER = "catalogos";
 const MAX_IMAGES = 10;
@@ -38,7 +39,7 @@ export async function uploadCatalogoImages(req: Request, res: Response, next: Ne
     const folderRaw = req.body?.folder;
     const folder = typeof folderRaw === "string" && folderRaw.trim() !== "" ? folderRaw.trim() : DEFAULT_FOLDER;
 
-    const uploaded = [] as Array<{ id: string; url: string; key: string }>
+    const uploaded = [] as Array<{ id: string; url: string; key: string }>;
 
     let sortOrderBase = 0;
     const sortOrderRaw = req.body?.sortOrder;
@@ -57,6 +58,11 @@ export async function uploadCatalogoImages(req: Request, res: Response, next: Ne
       uploaded.push({ id: image.id, url: image.imageUrl, key: result.key });
     }
 
+    logger.info("[imagenes] upload", {
+      userId: req.user?.id,
+      catalogoId: catalogo.id,
+      count: uploaded.length
+    });
     res.status(201).json({ count: uploaded.length, images: uploaded });
   } catch (error) {
     next(error);
@@ -71,6 +77,11 @@ export async function listCatalogoImages(req: Request, res: Response, next: Next
       order: [["sortOrder", "ASC"], ["createdAt", "ASC"]]
     });
 
+    logger.info("[imagenes] list", {
+      userId: req.user?.id,
+      catalogoId: catalogo.id,
+      count: images.length
+    });
     res.json({ count: images.length, images });
   } catch (error) {
     next(error);
@@ -93,6 +104,11 @@ export async function deleteCatalogoImage(req: Request, res: Response, next: Nex
     }
 
     await image.destroy();
+    logger.info("[imagenes] delete", {
+      userId: req.user?.id,
+      catalogoId: catalogo.id,
+      imageId: image.id
+    });
     res.status(204).send();
   } catch (error) {
     next(error);
@@ -120,6 +136,12 @@ export async function updateCatalogoImage(req: Request, res: Response, next: Nex
     }
 
     await image.update({ sortOrder });
+    logger.info("[imagenes] update", {
+      userId: req.user?.id,
+      catalogoId: catalogo.id,
+      imageId: image.id,
+      sortOrder
+    });
     res.json(image);
   } catch (error) {
     next(error);

@@ -8,6 +8,7 @@ import {
   updateCatalogoById
 } from "../services/catalogosService";
 import { generateCatalogoPdf } from "../services/catalogosPdfService";
+import { logger } from "../utils/logger";
 
 function requireUserId(req: Request): string {
   const user = req.user;
@@ -21,6 +22,7 @@ export async function create(req: Request, res: Response, next: NextFunction): P
   try {
     const userId = requireUserId(req);
     const catalogo = await createCatalogo(userId, req.body);
+    logger.info("[catalogos] create", { userId, catalogoId: catalogo.id });
     res.status(201).json(catalogo);
   } catch (error) {
     next(error);
@@ -51,6 +53,7 @@ export async function getById(req: Request, res: Response, next: NextFunction): 
   try {
     const userId = requireUserId(req);
     const catalogo = await getCatalogoById(userId, req.params.id);
+    logger.info("[catalogos] get", { userId, catalogoId: catalogo.id });
     res.json(catalogo);
   } catch (error) {
     next(error);
@@ -61,6 +64,7 @@ export async function updateById(req: Request, res: Response, next: NextFunction
   try {
     const userId = requireUserId(req);
     const catalogo = await updateCatalogoById(userId, req.params.id, req.body);
+    logger.info("[catalogos] update", { userId, catalogoId: catalogo.id });
     res.json(catalogo);
   } catch (error) {
     next(error);
@@ -71,6 +75,7 @@ export async function removeById(req: Request, res: Response, next: NextFunction
   try {
     const userId = requireUserId(req);
     await deleteCatalogoById(userId, req.params.id);
+    logger.info("[catalogos] delete", { userId, catalogoId: req.params.id });
     res.status(204).send();
   } catch (error) {
     next(error);
@@ -81,6 +86,7 @@ export async function downloadPdf(req: Request, res: Response, next: NextFunctio
   try {
     const userId = requireUserId(req);
     await generateCatalogoPdf(userId, req.params.id, res);
+    logger.info("[catalogos] pdf", { userId, catalogoId: req.params.id });
   } catch (error) {
     next(error);
   }

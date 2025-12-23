@@ -7,6 +7,7 @@ import { getBucketName, getS3Client } from "../s3-image-module";
 import { ApiError } from "../utils/ApiError";
 import CatalogoImage from "../models/CatalogoImage";
 import { getCatalogoById } from "./catalogosService";
+import { logger } from "../utils/logger";
 
 type PdfDoc = InstanceType<typeof PDFDocument>;
 
@@ -79,6 +80,7 @@ export async function generateCatalogoPdf(userId: string, catalogoId: string, re
   let doc: PdfDoc | null = null;
 
   try {
+    logger.info("[catalogos] pdf: start", { userId, catalogoId });
     const catalogo = await getCatalogoById(userId, catalogoId);
     const images = await CatalogoImage.findAll({
       where: { catalogId: catalogo.id },
@@ -90,7 +92,7 @@ export async function generateCatalogoPdf(userId: string, catalogoId: string, re
 
     doc = new PDFDocument({ size: "A4", margin: 50 });
     doc.on("error", (err) => {
-      console.error("PDF error:", err);
+      logger.error("[catalogos] pdf: stream error", { userId, catalogoId });
       if (!res.headersSent) {
         throw err;
       }
@@ -118,6 +120,7 @@ export async function generateCatalogoPdf(userId: string, catalogoId: string, re
     if (images.length === 0) {
       doc.fontSize(12).text("Sin imagenes");
       doc.end();
+      logger.info("[catalogos] pdf: done", { userId, catalogoId });
       return;
     }
 
@@ -171,9 +174,10 @@ export async function generateCatalogoPdf(userId: string, catalogoId: string, re
     }
 
     doc.end();
+    logger.info("[catalogos] pdf: done", { userId, catalogoId });
   } catch (error) {
+    logger.error("[catalogos] pdf: error", { userId, catalogoId });
     if (res.headersSent) {
-      console.error("PDF error:", error);
       try {
         doc?.end();
       } catch {

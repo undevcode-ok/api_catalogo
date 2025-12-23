@@ -2,6 +2,7 @@
 import User from "../models/User";
 import { comparePassword, hashPassword } from "../utils/password";
 import { signToken } from "../utils/jwt";
+import { logger } from "../utils/logger";
 
 export type AuthUser = {
   id: string;
@@ -12,6 +13,7 @@ export type AuthUser = {
 export async function registerUser(email: string, password: string): Promise<AuthUser> {
   const existing = await User.findOne({ where: { email } });
   if (existing) {
+    logger.warn("[auth] register: email en uso", { email });
     throw new ApiError(409, "El email ya está en uso");
   }
 
@@ -23,21 +25,25 @@ export async function registerUser(email: string, password: string): Promise<Aut
     provider: "local"
   });
 
+  logger.info("[auth] register: ok", { userId: user.id, email: user.email });
   return { id: user.id, email: user.email, role: user.role };
 }
 
 export async function loginUser(email: string, password: string): Promise<{ token: string; user: AuthUser }> {
   const user = await User.findOne({ where: { email } });
   if (!user || !user.passwordHash) {
+    logger.warn("[auth] login: credenciales invalidas", { email });
     throw new ApiError(401, "Credenciales inválidas");
   }
 
   const isValid = await comparePassword(password, user.passwordHash);
   if (!isValid) {
+    logger.warn("[auth] login: credenciales invalidas", { email });
     throw new ApiError(401, "Credenciales inválidas");
   }
 
   const token = signToken({ sub: user.id, role: user.role });
+  logger.info("[auth] login: ok", { userId: user.id, email: user.email });
   return { token, user: { id: user.id, email: user.email, role: user.role } };
 }
 
