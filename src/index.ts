@@ -29,6 +29,11 @@ app.use(express.json());
 /* =========================
  * Routes base
  * ========================= */
+app.use((req, _res, next) => {
+  req.url = req.url.replace(/\/{2,}/g, "/");
+  next();
+});
+
 app.use(routes);
 
 /* =========================

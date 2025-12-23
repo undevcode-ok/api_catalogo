@@ -1,4 +1,6 @@
 ﻿import Catalogo from "../models/Catalogo";
+import CatalogoImage from "../models/CatalogoImage";
+import { ImageS3Service } from "../s3-image-module";
 import { ApiError } from "../utils/ApiError";
 
 export type CatalogoInput = {
@@ -27,6 +29,15 @@ function normalizePrice(price: string | number | null | undefined): string | nul
     return null;
   }
   return typeof price === "number" ? String(price) : price;
+}
+
+function extractS3Key(url: string): string | null {
+  const marker = ".com/";
+  const index = url.indexOf(marker);
+  if (index === -1) {
+    return null;
+  }
+  return url.slice(index + marker.length);
 }
 
 export async function createCatalogo(userId: string, input: CatalogoInput): Promise<Catalogo> {
@@ -100,5 +111,16 @@ export async function updateCatalogoById(
 
 export async function deleteCatalogoById(userId: string, id: string): Promise<void> {
   const catalogo = await getCatalogoById(userId, id);
+
+  const images = await CatalogoImage.findAll({ where: { catalogId: catalogo.id } });
+  const keys = images
+    .map((image) => extractS3Key(image.imageUrl))
+    .filter((key): key is string => Boolean(key));
+
+  if (keys.length > 0) {
+    await ImageS3Service.deleteMultipleImages(keys);
+  }
+
+  await CatalogoImage.destroy({ where: { catalogId: catalogo.id } });
   await catalogo.destroy();
 }

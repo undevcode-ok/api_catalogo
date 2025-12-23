@@ -2,6 +2,7 @@
 import authRoutes from "./auth.routes";
 import catalogosRoutes from "./catalogos.routes";
 import healthRoutes from "./health.routes";
+import imagesRoutes from "./images.routes";
 
 const router = Router();
 
@@ -12,5 +13,6 @@ router.get("/", (_req, res) => {
 router.use("/api", healthRoutes);
 router.use("/api/auth", authRoutes);
 router.use("/api/catalogos", catalogosRoutes);
+router.use("/api", imagesRoutes);
 
 export default router;
