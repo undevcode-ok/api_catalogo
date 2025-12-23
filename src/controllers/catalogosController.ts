@@ -7,6 +7,7 @@ import {
   listCatalogos,
   updateCatalogoById
 } from "../services/catalogosService";
+import { generateCatalogoPdf } from "../services/catalogosPdfService";
 
 function requireUserId(req: Request): string {
   const user = req.user;
@@ -36,7 +37,7 @@ export async function list(req: Request, res: Response, next: NextFunction): Pro
     const limit = limitRaw ? Number(limitRaw) : 10;
 
     if (!Number.isFinite(page) || page < 1 || !Number.isFinite(limit) || limit < 1 || limit > 100) {
-      throw new ApiError(400, "Paginación inválida");
+      throw new ApiError(400, "Paginacion invalida");
     }
 
     const result = await listCatalogos(userId, page, limit);
@@ -71,6 +72,15 @@ export async function removeById(req: Request, res: Response, next: NextFunction
     const userId = requireUserId(req);
     await deleteCatalogoById(userId, req.params.id);
     res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function downloadPdf(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = requireUserId(req);
+    await generateCatalogoPdf(userId, req.params.id, res);
   } catch (error) {
     next(error);
   }
