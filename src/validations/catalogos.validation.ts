@@ -1,27 +1,39 @@
 ﻿import { z } from "zod";
 
-const trimmedString = z.string().trim().min(1);
+const trimmedString = z
+  .string({ required_error: "title requerido", invalid_type_error: "title inválido" })
+  .trim()
+  .min(1, "title requerido");
 
-const optionalNullableTrimmed = z.union([trimmedString, z.null()]).optional();
+const descriptionField = z
+  .string({ invalid_type_error: "description inválido" })
+  .trim()
+  .min(1, "description no puede estar vacío");
 
-const urlField = z.string().trim().url();
+const optionalNullableTrimmed = z.union([descriptionField, z.null()]).optional();
+
+const urlField = z
+  .string({ invalid_type_error: "logoUrl inválido" })
+  .trim()
+  .url("logoUrl inválido");
+
 const optionalNullableUrl = z.union([urlField, z.null()]).optional();
 
 const priceField = z
   .union([
-    z.number().positive(),
+    z.number({ invalid_type_error: "price inválido" }).positive("price debe ser positivo"),
     z
-      .string()
+      .string({ invalid_type_error: "price inválido" })
       .trim()
-      .regex(/^\d+(\.\d{1,2})?$/, "Precio inválido"),
+      .regex(/^\d+(\.\d{1,2})?$/, "price inválido"),
     z.null()
   ])
   .optional();
 
 const hexColorField = z
-  .string()
+  .string({ invalid_type_error: "backgroundColor inválido" })
   .trim()
-  .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, "Color inválido");
+  .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, "backgroundColor inválido");
 
 const optionalNullableHex = z.union([hexColorField, z.null()]).optional();
 
@@ -31,7 +43,7 @@ export const createCatalogoSchema = z.object({
   logoUrl: optionalNullableUrl,
   price: priceField,
   backgroundColor: optionalNullableHex,
-  isPublished: z.boolean().optional()
+  isPublished: z.boolean({ invalid_type_error: "isPublished inválido" }).optional()
 });
 
 export const updateCatalogoSchema = z.object({
@@ -40,5 +52,5 @@ export const updateCatalogoSchema = z.object({
   logoUrl: optionalNullableUrl,
   price: priceField,
   backgroundColor: optionalNullableHex,
-  isPublished: z.boolean().optional()
+  isPublished: z.boolean({ invalid_type_error: "isPublished inválido" }).optional()
 });

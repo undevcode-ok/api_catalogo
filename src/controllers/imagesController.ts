@@ -4,6 +4,11 @@ import { ImageS3Service } from "../s3-image-module";
 import Catalogo from "../models/Catalogo";
 import CatalogoImage from "../models/CatalogoImage";
 import { logger } from "../utils/logger";
+import {
+  catalogoIdObjectSchema,
+  sortOrderObjectSchema,
+  sortOrderCoerceSchema
+} from "../validations/images.validation";
 
 const DEFAULT_FOLDER = "catalogos";
 const MAX_IMAGES = 10;
@@ -16,6 +21,14 @@ async function requireCatalogoById(userId: string, catalogoId: string): Promise<
   return catalogo;
 }
 
+function parseCatalogoId(value: unknown): string {
+  const result = catalogoIdObjectSchema.safeParse({ catalogoId: value });
+  if (!result.success) {
+    throw new ApiError(400, "Datos inválidos", { errors: result.error.errors });
+  }
+  return result.data.catalogoId;
+}
+
 export async function uploadCatalogoImages(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const user = req.user;
@@ -23,12 +36,8 @@ export async function uploadCatalogoImages(req: Request, res: Response, next: Ne
       throw new ApiError(401, "No autorizado");
     }
 
-    const catalogoIdRaw = req.body?.catalogoId;
-    if (typeof catalogoIdRaw !== "string" || catalogoIdRaw.trim() === "") {
-      throw new ApiError(400, "catalogoId requerido");
-    }
-
-    const catalogo = await requireCatalogoById(user.id, catalogoIdRaw.trim());
+    const catalogoId = parseCatalogoId(req.body?.catalogoId);
+    const catalogo = await requireCatalogoById(user.id, catalogoId);
 
     const files = req.files as Express.Multer.File[] | undefined;
     if (!files || files.length === 0) {
@@ -39,20 +48,21 @@ export async function uploadCatalogoImages(req: Request, res: Response, next: Ne
       throw new ApiError(400, `Máximo ${MAX_IMAGES} imágenes por request`);
     }
 
-    const folderRaw = req.body?.folder;
-    const folder = typeof folderRaw === "string" && folderRaw.trim() !== "" ? folderRaw.trim() : DEFAULT_FOLDER;
-
     const uploaded = [] as Array<{ id: string; url: string; key: string }>;
 
     let sortOrderBase = 0;
     const sortOrderRaw = req.body?.sortOrder;
-    if (typeof sortOrderRaw === "string" && sortOrderRaw.trim() !== "" && Number.isFinite(Number(sortOrderRaw))) {
-      sortOrderBase = Number(sortOrderRaw);
+    if (sortOrderRaw !== undefined && sortOrderRaw !== null && String(sortOrderRaw).trim() !== "") {
+      const sortResult = sortOrderCoerceSchema.safeParse(sortOrderRaw);
+      if (!sortResult.success) {
+        throw new ApiError(400, "Datos inválidos", { errors: sortResult.error.errors });
+      }
+      sortOrderBase = sortResult.data;
     }
 
     for (let i = 0; i < files.length; i += 1) {
       const file = files[i];
-      const result = await ImageS3Service.uploadImage(file, folder);
+      const result = await ImageS3Service.uploadImage(file, DEFAULT_FOLDER);
       const image = await CatalogoImage.create({
         catalogId: catalogo.id,
         imageUrl: result.url,
@@ -79,12 +89,8 @@ export async function listCatalogoImages(req: Request, res: Response, next: Next
       throw new ApiError(401, "No autorizado");
     }
 
-    const catalogoIdRaw = req.query.catalogoId;
-    if (typeof catalogoIdRaw !== "string" || catalogoIdRaw.trim() === "") {
-      throw new ApiError(400, "catalogoId requerido");
-    }
-
-    const catalogo = await requireCatalogoById(user.id, catalogoIdRaw.trim());
+    const catalogoId = parseCatalogoId(req.query.catalogoId);
+    const catalogo = await requireCatalogoById(user.id, catalogoId);
     const images = await CatalogoImage.findAll({
       where: { catalogId: catalogo.id },
       order: [["sortOrder", "ASC"], ["createdAt", "ASC"]]
@@ -148,15 +154,12 @@ export async function updateImage(req: Request, res: Response, next: NextFunctio
     const imageId = req.params.imageId;
     const image = await requireImageForUser(user.id, imageId);
 
-    const sortOrderRaw = req.body?.sortOrder;
-    if (typeof sortOrderRaw !== "number" && typeof sortOrderRaw !== "string") {
-      throw new ApiError(400, "sortOrder requerido");
+    const sortResult = sortOrderObjectSchema.safeParse({ sortOrder: req.body?.sortOrder });
+    if (!sortResult.success) {
+      throw new ApiError(400, "Datos inválidos", { errors: sortResult.error.errors });
     }
 
-    const sortOrder = Number(sortOrderRaw);
-    if (!Number.isFinite(sortOrder)) {
-      throw new ApiError(400, "sortOrder inválido");
-    }
+    const sortOrder = sortResult.data.sortOrder;
 
     await image.update({ sortOrder });
     logger.info("[imagenes] update", {
