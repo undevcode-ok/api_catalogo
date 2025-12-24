@@ -33,6 +33,19 @@ npm run build
 npm start
 ```
 
+## Seed (datos de prueba)
+
+```bash
+npm run seed
+```
+
+Usuario admin de seed:
+
+```
+email: admin@catalogo.com
+password: admin123
+```
+
 ## Healthcheck
 
 ```bash
