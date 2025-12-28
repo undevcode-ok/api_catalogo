@@ -16,8 +16,8 @@ class Catalogo extends Model<
   declare title: string;
   declare description: string | null;
   declare logoUrl: string | null;
-  declare price: string | null;
   declare backgroundColor: string | null;
+  declare componentColor: string | null;
   declare isPublished: CreationOptional<boolean>;
   declare readonly createdAt: CreationOptional<Date>;
   declare readonly updatedAt: CreationOptional<Date>;
@@ -46,11 +46,11 @@ Catalogo.init(
       type: DataTypes.STRING(1024),
       allowNull: true
     },
-    price: {
-      type: DataTypes.DECIMAL(10, 2),
+    backgroundColor: {
+      type: DataTypes.STRING(32),
       allowNull: true
     },
-    backgroundColor: {
+    componentColor: {
       type: DataTypes.STRING(32),
       allowNull: true
     },

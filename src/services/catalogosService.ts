@@ -1,5 +1,6 @@
-﻿import Catalogo from "../models/Catalogo";
+import Catalogo from "../models/Catalogo";
 import CatalogoImage from "../models/CatalogoImage";
+import CatalogoItem from "../models/CatalogoItem";
 import { ImageS3Service } from "../s3-image-module";
 import { ApiError } from "../utils/ApiError";
 
@@ -7,8 +8,8 @@ export type CatalogoInput = {
   title?: string;
   description?: string | null;
   logoUrl?: string | null;
-  price?: string | number | null;
   backgroundColor?: string | null;
+  componentColor?: string | null;
   isPublished?: boolean;
 };
 
@@ -16,20 +17,10 @@ type CatalogoUpdate = {
   title?: string;
   description?: string | null;
   logoUrl?: string | null;
-  price?: string | null;
   backgroundColor?: string | null;
+  componentColor?: string | null;
   isPublished?: boolean;
 };
-
-function normalizePrice(price: string | number | null | undefined): string | null | undefined {
-  if (price === undefined) {
-    return undefined;
-  }
-  if (price === null) {
-    return null;
-  }
-  return typeof price === "number" ? String(price) : price;
-}
 
 function extractS3Key(url: string): string | null {
   const marker = ".com/";
@@ -50,8 +41,8 @@ export async function createCatalogo(userId: string, input: CatalogoInput): Prom
     title: input.title,
     description: input.description ?? null,
     logoUrl: input.logoUrl ?? null,
-    price: normalizePrice(input.price) ?? null,
     backgroundColor: input.backgroundColor ?? null,
+    componentColor: input.componentColor ?? null,
     isPublished: input.isPublished ?? false
   });
 
@@ -76,7 +67,10 @@ export async function listCatalogos(
 }
 
 export async function getCatalogoById(userId: string, id: string): Promise<Catalogo> {
-  const catalogo = await Catalogo.findOne({ where: { id, userId } });
+  const catalogo = await Catalogo.findOne({
+    where: { id, userId },
+    include: [CatalogoItem]
+  });
   if (!catalogo) {
     throw new ApiError(404, "Catálogo no encontrado");
   }
@@ -95,8 +89,8 @@ export async function updateCatalogoById(
     title: input.title,
     description: input.description,
     logoUrl: input.logoUrl,
-    price: normalizePrice(input.price),
     backgroundColor: input.backgroundColor,
+    componentColor: input.componentColor,
     isPublished: input.isPublished
   };
 

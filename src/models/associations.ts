@@ -1,5 +1,6 @@
-﻿import Catalogo from "./Catalogo";
+import Catalogo from "./Catalogo";
 import CatalogoImage from "./CatalogoImage";
+import CatalogoItem from "./CatalogoItem";
 import User from "./User";
 
 export function setupAssociations(): void {
@@ -8,4 +9,7 @@ export function setupAssociations(): void {
 
   Catalogo.hasMany(CatalogoImage, { foreignKey: "catalogId", onDelete: "CASCADE" });
   CatalogoImage.belongsTo(Catalogo, { foreignKey: "catalogId" });
+
+  Catalogo.hasMany(CatalogoItem, { foreignKey: "catalogId", onDelete: "CASCADE" });
+  CatalogoItem.belongsTo(Catalogo, { foreignKey: "catalogId" });
 }

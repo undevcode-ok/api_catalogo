@@ -19,17 +19,6 @@ const urlField = z
 
 const optionalNullableUrl = z.union([urlField, z.null()]).optional();
 
-const priceField = z
-  .union([
-    z.number({ invalid_type_error: "price inválido" }).positive("price debe ser positivo"),
-    z
-      .string({ invalid_type_error: "price inválido" })
-      .trim()
-      .regex(/^\d+(\.\d{1,2})?$/, "price inválido"),
-    z.null()
-  ])
-  .optional();
-
 const hexColorField = z
   .string({ invalid_type_error: "backgroundColor inválido" })
   .trim()
@@ -41,8 +30,8 @@ export const createCatalogoSchema = z.object({
   title: trimmedString,
   description: optionalNullableTrimmed,
   logoUrl: optionalNullableUrl,
-  price: priceField,
   backgroundColor: optionalNullableHex,
+  componentColor: optionalNullableHex,
   isPublished: z.boolean({ invalid_type_error: "isPublished inválido" }).optional()
 });
 
@@ -50,7 +39,15 @@ export const updateCatalogoSchema = z.object({
   title: trimmedString.optional(),
   description: optionalNullableTrimmed,
   logoUrl: optionalNullableUrl,
-  price: priceField,
   backgroundColor: optionalNullableHex,
+  componentColor: optionalNullableHex,
   isPublished: z.boolean({ invalid_type_error: "isPublished inválido" }).optional()
+});
+
+export const createCatalogoPdfFromHtmlSchema = z.object({
+  html: z
+    .string({ required_error: "html requerido", invalid_type_error: "html inválido" })
+    .trim()
+    .min(1, "html requerido"),
+  viewMode: z.string({ invalid_type_error: "viewMode inválido" }).trim().optional()
 });

@@ -1,6 +1,7 @@
-﻿import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { type Response } from "express";
 import PDFDocument from "pdfkit";
+import { chromium } from "playwright";
 import sharp from "sharp";
 import { Readable } from "stream";
 import { getBucketName, getS3Client } from "../s3-image-module";
@@ -109,9 +110,9 @@ export async function generateCatalogoPdf(userId: string, catalogoId: string, re
     doc.fontSize(12).text(`ID: ${catalogo.id}`);
     doc.text(`Titulo: ${catalogo.title}`);
     doc.text(`Descripcion: ${catalogo.description ?? "-"}`);
-    doc.text(`Precio: ${catalogo.price ?? "-"}`);
     doc.text(`Publicado: ${catalogo.isPublished ? "Si" : "No"}`);
     doc.text(`Color de fondo: ${catalogo.backgroundColor ?? "-"}`);
+    doc.text(`Color de componente: ${catalogo.componentColor ?? "-"}`);
     doc.text(`Logo URL: ${catalogo.logoUrl ?? "-"}`);
 
     doc.moveDown();
@@ -191,5 +192,71 @@ export async function generateCatalogoPdf(userId: string, catalogoId: string, re
     }
 
     throw new ApiError(500, "Error al generar PDF");
+  }
+}
+
+export async function generateCatalogoPdfFromHtml(
+  userId: string,
+  catalogoId: string,
+  html: string,
+  res: Response
+): Promise<void> {
+  let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null;
+
+  try {
+    logger.info("[catalogos] pdf html: start", { userId, catalogoId });
+    const catalogo = await getCatalogoById(userId, catalogoId);
+
+    browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: "networkidle" });
+    await page.emulateMedia({ media: "screen" });
+    await page.evaluateHandle("document.fonts.ready");
+
+    const pdfBuffer = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: { top: "16mm", right: "12mm", bottom: "16mm", left: "12mm" }
+    });
+
+    await page.close();
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename=\"catalogo-${catalogo.id}.pdf\"`);
+    res.send(pdfBuffer);
+    logger.info("[catalogos] pdf html: done", { userId, catalogoId });
+  } catch (error) {
+    if (error instanceof Error) {
+      logger.error("[catalogos] pdf html: error", {
+        userId,
+        catalogoId,
+        message: error.message,
+        stack: error.stack
+      });
+    } else {
+      logger.error("[catalogos] pdf html: error", { userId, catalogoId, error });
+    }
+    if (res.headersSent) {
+      try {
+        res.end();
+      } catch {
+        // ignore
+      }
+      return;
+    }
+
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    throw new ApiError(500, "Error al generar PDF");
+  } finally {
+    if (browser) {
+      try {
+        await browser.close();
+      } catch {
+        // ignore
+      }
+    }
   }
 }

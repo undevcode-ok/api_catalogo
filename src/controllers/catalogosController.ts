@@ -7,7 +7,7 @@ import {
   listCatalogos,
   updateCatalogoById
 } from "../services/catalogosService";
-import { generateCatalogoPdf } from "../services/catalogosPdfService";
+import { generateCatalogoPdf, generateCatalogoPdfFromHtml } from "../services/catalogosPdfService";
 import { logger } from "../utils/logger";
 
 function requireUserId(req: Request): string {
@@ -87,6 +87,16 @@ export async function downloadPdf(req: Request, res: Response, next: NextFunctio
     const userId = requireUserId(req);
     await generateCatalogoPdf(userId, req.params.id, res);
     logger.info("[catalogos] pdf", { userId, catalogoId: req.params.id });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function downloadPdfFromHtml(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = requireUserId(req);
+    await generateCatalogoPdfFromHtml(userId, req.params.id, req.body.html, res);
+    logger.info("[catalogos] pdf html", { userId, catalogoId: req.params.id });
   } catch (error) {
     next(error);
   }

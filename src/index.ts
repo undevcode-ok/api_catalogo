@@ -16,13 +16,25 @@ import routes from "./routes";
 // import { httpLogger } from "./middlewares/httpLogger";
 
 const app = express();
-const port = process.env.PORT ? Number(process.env.PORT) : 3000;
+const port = process.env.PORT ? Number(process.env.PORT) : 3001;
 
 /* =========================
  * Middlewares base
  * ========================= */
-//app.use(cors());
-app.use(express.json());
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const allowOrigin = process.env.CORS_ORIGIN ?? origin ?? "*";
+  res.header("Access-Control-Allow-Origin", allowOrigin);
+  res.header("Vary", "Origin");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  if (req.method === "OPTIONS") {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+});
+app.use(express.json({ limit: "5mb" }));
 
 // app.use(httpLogger);
 
