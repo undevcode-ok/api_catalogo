@@ -1,14 +1,17 @@
-﻿import { hashPassword } from "./utils/password";
+import "dotenv/config";
+import { hashPassword } from "./utils/password";
 import { sequelize } from "./config/database";
 import User from "./models/User";
 import Catalogo from "./models/Catalogo";
 import CatalogoImage from "./models/CatalogoImage";
+import CatalogoItem from "./models/CatalogoItem";
 
 async function runSeed(): Promise<void> {
   const email = "admin@catalogo.com";
   const password = "admin123";
 
   await sequelize.authenticate();
+  await sequelize.sync({ alter: true });
 
   const existingUser = await User.findOne({ where: { email } });
   let user = existingUser;
@@ -31,8 +34,8 @@ async function runSeed(): Promise<void> {
         title: "Catalogo Demo 1",
         description: "Demo catalogo 1",
         logoUrl: null,
-        price: "10.00",
         backgroundColor: "#FFFFFF",
+        componentColor: "#F2BADE",
         isPublished: true
       },
       {
@@ -40,8 +43,8 @@ async function runSeed(): Promise<void> {
         title: "Catalogo Demo 2",
         description: "Demo catalogo 2",
         logoUrl: null,
-        price: "20.00",
         backgroundColor: "#F0F0F0",
+        componentColor: "#9CE9D9",
         isPublished: false
       },
       {
@@ -49,8 +52,8 @@ async function runSeed(): Promise<void> {
         title: "Catalogo Demo 3",
         description: "Demo catalogo 3",
         logoUrl: null,
-        price: "30.00",
         backgroundColor: "#EFEFEF",
+        componentColor: "#F3DAB2",
         isPublished: true
       }
     ]);
@@ -62,6 +65,13 @@ async function runSeed(): Promise<void> {
     ];
 
     const imagesPayload: Array<{ catalogId: string; imageUrl: string; sortOrder: number }> = [];
+    const itemsPayload: Array<{
+      catalogId: string;
+      name: string;
+      description: string;
+      price: string;
+      image: string;
+    }> = [];
 
     for (const catalogo of catalogos) {
       dummyUrls.forEach((url, index) => {
@@ -71,9 +81,26 @@ async function runSeed(): Promise<void> {
           sortOrder: index
         });
       });
+      itemsPayload.push(
+        {
+          catalogId: catalogo.id,
+          name: "Silla Comedor",
+          description: "Silla de madera con asiento tapizado.",
+          price: "42.90",
+          image: "https://placehold.co/400x300.png"
+        },
+        {
+          catalogId: catalogo.id,
+          name: "Silla Oficina Mesh",
+          description: "Respaldo de malla transpirable.",
+          price: "95.00",
+          image: "https://placehold.co/400x300.png"
+        }
+      );
     }
 
     await CatalogoImage.bulkCreate(imagesPayload);
+    await CatalogoItem.bulkCreate(itemsPayload);
   }
 
   console.log("Seed completo. Usuario admin:", { email, password });
