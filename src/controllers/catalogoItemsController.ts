@@ -7,6 +7,7 @@ import {
   deleteCatalogoItemByUuid,
   getCatalogoItemByUuid,
   listCatalogoItems,
+  moveCatalogoItemPosition,
   updateCatalogoItemByUuid
 } from "../services/catalogoItemsService";
 import { logger } from "../utils/logger";
@@ -200,6 +201,19 @@ export async function removeByUuidFromParams(req: Request, res: Response, next: 
     }
     await deleteCatalogoItemByUuid(userId, catalogId, req.params.itemUuid);
     logger.info("[catalogo-items] delete", { userId, catalogId, itemUuid: req.params.itemUuid });
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function moveItemPosition(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const userId = requireUserId(req);
+    const catalogId = req.body.catalogoId as string;
+    const newPosition = req.body.newPosition as number;
+    await moveCatalogoItemPosition(userId, catalogId, req.params.itemUuid, newPosition);
+    logger.info("[catalogo-items] move", { userId, catalogId, itemUuid: req.params.itemUuid, newPosition });
     res.status(204).send();
   } catch (error) {
     next(error);

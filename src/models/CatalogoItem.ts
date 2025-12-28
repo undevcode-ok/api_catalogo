@@ -18,6 +18,7 @@ class CatalogoItem extends Model<
   declare description: string | null;
   declare price: string | null;
   declare image: string | null;
+  declare sortOrder: CreationOptional<number>;
   declare readonly createdAt: CreationOptional<Date>;
   declare readonly updatedAt: CreationOptional<Date>;
 }
@@ -54,6 +55,11 @@ CatalogoItem.init(
     image: {
       type: DataTypes.STRING(1024),
       allowNull: true
+    },
+    sortOrder: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0
     }
   },
   {

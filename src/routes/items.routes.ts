@@ -7,12 +7,14 @@ import {
   getByUuidFromParams,
   listByCatalog,
   removeByUuidFromParams,
+  moveItemPosition,
   updateByUuidFromParams,
   uploadItemImage
 } from "../controllers/catalogoItemsController";
 import {
   createCatalogoItemWithCatalogSchema,
   deleteCatalogoItemWithCatalogOnlySchema,
+  moveCatalogoItemSchema,
   updateCatalogoItemWithCatalogOnlySchema
 } from "../validations/catalogoItems.validation";
 
@@ -31,6 +33,7 @@ router.get("/items", authMiddleware, listByCatalog);
 router.get("/items/:itemUuid", authMiddleware, getByUuidFromParams);
 router.put("/items/:itemUuid", authMiddleware, validateBody(updateCatalogoItemWithCatalogOnlySchema), updateByUuidFromParams);
 router.delete("/items/:itemUuid", authMiddleware, validateBody(deleteCatalogoItemWithCatalogOnlySchema), removeByUuidFromParams);
+router.patch("/items/:itemUuid/position", authMiddleware, validateBody(moveCatalogoItemSchema), moveItemPosition);
 router.post("/items/image", authMiddleware, uploadMiddleware.single("image"), uploadItemImage);
 
 export default router;

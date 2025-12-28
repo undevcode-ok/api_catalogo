@@ -36,6 +36,7 @@ const itemUuidSchema = z
   .trim()
   .uuid("itemUuid inválido");
 
+
 const baseCreateSchema = z.object({
   name: trimmedString,
   description: optionalNullableTrimmed,
@@ -84,4 +85,12 @@ export const deleteCatalogoItemSchema = z.object({
 
 export const deleteCatalogoItemWithCatalogOnlySchema = z.object({
   catalogoId: catalogoIdSchema
+});
+
+export const moveCatalogoItemSchema = z.object({
+  catalogoId: catalogoIdSchema,
+  newPosition: z
+    .number({ required_error: "newPosition requerido", invalid_type_error: "newPosition inválido" })
+    .int("newPosition debe ser entero")
+    .min(1, "newPosition debe ser >= 1")
 });

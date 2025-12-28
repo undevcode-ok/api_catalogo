@@ -71,6 +71,7 @@ async function runSeed(): Promise<void> {
       description: string;
       price: string;
       image: string;
+      sortOrder: number;
     }> = [];
 
     for (const catalogo of catalogos) {
@@ -87,14 +88,16 @@ async function runSeed(): Promise<void> {
           name: "Silla Comedor",
           description: "Silla de madera con asiento tapizado.",
           price: "42.90",
-          image: "https://placehold.co/400x300.png"
+          image: "https://placehold.co/400x300.png",
+          sortOrder: 10000
         },
         {
           catalogId: catalogo.id,
           name: "Silla Oficina Mesh",
           description: "Respaldo de malla transpirable.",
           price: "95.00",
-          image: "https://placehold.co/400x300.png"
+          image: "https://placehold.co/400x300.png",
+          sortOrder: 20000
         }
       );
     }
