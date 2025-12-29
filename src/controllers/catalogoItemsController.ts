@@ -12,20 +12,24 @@ import {
 } from "../services/catalogoItemsService";
 import { logger } from "../utils/logger";
 
-function requireUserId(req: Request): string {
+function requireUser(req: Request): { id: string; role: string } {
   const user = req.user;
   if (!user) {
     throw new ApiError(401, "No autorizado");
   }
-  return user.id;
+  return user;
+}
+
+function requireUserId(req: Request): string {
+  return requireUser(req).id;
 }
 
 export async function create(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const userId = requireUserId(req);
+    const { id: userId, role } = requireUser(req);
     const catalogId = req.params.catalogId;
     if (Array.isArray(req.body)) {
-      const items = await createCatalogoItems(userId, catalogId, req.body);
+      const items = await createCatalogoItems(userId, role, catalogId, req.body);
       logger.info("[catalogo-items] create bulk", {
         userId,
         catalogId,
@@ -35,7 +39,7 @@ export async function create(req: Request, res: Response, next: NextFunction): P
       return;
     }
 
-    const item = await createCatalogoItem(userId, catalogId, req.body);
+    const item = await createCatalogoItem(userId, role, catalogId, req.body);
     logger.info("[catalogo-items] create", { userId, catalogId, itemUuid: item.uuid });
     res.status(201).json(item);
   } catch (error) {
@@ -45,7 +49,7 @@ export async function create(req: Request, res: Response, next: NextFunction): P
 
 export async function createFromBody(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const userId = requireUserId(req);
+    const { id: userId, role } = requireUser(req);
     const { catalogoId, ...input } = req.body as { catalogoId: string };
     let payload = { ...input };
     const file = req.file as Express.Multer.File | undefined;
@@ -53,7 +57,7 @@ export async function createFromBody(req: Request, res: Response, next: NextFunc
       const result = await ImageS3Service.uploadImage(file, "catalogo-items");
       payload = { ...payload, image: result.url };
     }
-    const item = await createCatalogoItem(userId, catalogoId, payload);
+    const item = await createCatalogoItem(userId, role, catalogoId, payload);
     logger.info("[catalogo-items] create", { userId, catalogoId, itemUuid: item.uuid });
     res.status(201).json(item);
   } catch (error) {

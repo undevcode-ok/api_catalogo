@@ -19,6 +19,8 @@ type CatalogoItemUpdate = {
 };
 
 const SORT_STEP = 10000;
+type UserRole = "free" | "premium" | "admin";
+const ITEM_LIMITS: Record<UserRole, number> = { free: 5, premium: 20, admin: 20 };
 
 function normalizePrice(price: string | number | null | undefined): string | null | undefined {
   if (price === undefined) {
@@ -28,6 +30,31 @@ function normalizePrice(price: string | number | null | undefined): string | nul
     return null;
   }
   return typeof price === "number" ? String(price) : price;
+}
+
+function getItemLimitForRole(role: string): number {
+  if (role === "premium" || role === "admin") {
+    return ITEM_LIMITS[role];
+  }
+  return ITEM_LIMITS.free;
+}
+
+async function enforceItemLimit(
+  userId: string,
+  role: string,
+  catalogId: string,
+  incomingCount: number
+): Promise<void> {
+  const limit = getItemLimitForRole(role);
+  await requireCatalogo(userId, catalogId);
+  const existingCount = await CatalogoItem.count({ where: { catalogId } });
+
+  if (existingCount + incomingCount > limit) {
+    const message = role === "free"
+      ? "Limite alcanzado de la cuenta gratuita"
+      : `Maximo ${limit} items por catalogo`;
+    throw new ApiError(400, message);
+  }
 }
 
 async function requireCatalogo(userId: string, catalogId: string): Promise<Catalogo> {
@@ -40,6 +67,7 @@ async function requireCatalogo(userId: string, catalogId: string): Promise<Catal
 
 export async function createCatalogoItem(
   userId: string,
+  role: string,
   catalogId: string,
   input: CatalogoItemInput
 ): Promise<CatalogoItem> {
@@ -48,6 +76,7 @@ export async function createCatalogoItem(
   }
 
   await requireCatalogo(userId, catalogId);
+  await enforceItemLimit(userId, role, catalogId, 1);
 
   const maxSort = await CatalogoItem.max("sortOrder", { where: { catalogId } });
   const nextSort = (Number.isFinite(maxSort) ? Number(maxSort) : 0) + SORT_STEP;
@@ -66,17 +95,16 @@ export async function createCatalogoItem(
 
 export async function createCatalogoItems(
   userId: string,
+  role: string,
   catalogId: string,
   inputs: CatalogoItemInput[]
 ): Promise<CatalogoItem[]> {
   if (inputs.length === 0) {
     throw new ApiError(400, "Items requeridos");
   }
-  if (inputs.length > 10) {
-    throw new ApiError(400, "Maximo 10 items");
-  }
 
   await requireCatalogo(userId, catalogId);
+  await enforceItemLimit(userId, role, catalogId, inputs.length);
 
   const maxSort = await CatalogoItem.max("sortOrder", { where: { catalogId } });
   let nextSort = (Number.isFinite(maxSort) ? Number(maxSort) : 0) + SORT_STEP;

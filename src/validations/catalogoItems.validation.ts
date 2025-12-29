@@ -46,7 +46,7 @@ const baseCreateSchema = z.object({
 
 export const createCatalogoItemSchema = z.union([
   baseCreateSchema,
-  z.array(baseCreateSchema).min(1, "items requeridos").max(10, "maximo 10 items")
+  z.array(baseCreateSchema).min(1, "items requeridos").max(20, "maximo 20 items")
 ]);
 
 export const createCatalogoItemWithCatalogSchema = baseCreateSchema.extend({
