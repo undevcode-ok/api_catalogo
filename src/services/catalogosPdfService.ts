@@ -57,9 +57,17 @@ async function fetchImageBuffer(key: string): Promise<Buffer | null> {
   }
 }
 
-async function toPdfImageBuffer(buffer: Buffer): Promise<Buffer | null> {
+async function toPdfImageBuffer(buffer: Buffer, maxWidth: number, maxHeight: number): Promise<Buffer | null> {
   try {
-    return await sharp(buffer).png().toBuffer();
+    return await sharp(buffer)
+      .resize({
+        width: Math.max(1, Math.floor(maxWidth)),
+        height: Math.max(1, Math.floor(maxHeight)),
+        fit: "inside",
+        withoutEnlargement: true
+      })
+      .jpeg({ quality: 75 })
+      .toBuffer();
   } catch {
     return null;
   }
@@ -128,6 +136,8 @@ export async function generateCatalogoPdf(userId: string, catalogoId: string, re
     const contentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
     const maxWidth = Math.min(500, contentWidth);
     const maxHeight = 400;
+    const maxOutputWidth = Math.round(maxWidth * 2);
+    const maxOutputHeight = Math.round(maxHeight * 2);
 
     for (let i = 0; i < images.length; i += 1) {
       const image = images[i];
@@ -143,13 +153,13 @@ export async function generateCatalogoPdf(userId: string, catalogoId: string, re
         continue;
       }
 
-      const pngBuffer = await toPdfImageBuffer(buffer);
-      if (!pngBuffer) {
+      const pdfImageBuffer = await toPdfImageBuffer(buffer, maxOutputWidth, maxOutputHeight);
+      if (!pdfImageBuffer) {
         doc.fontSize(12).text(`${i + 1}. ${image.imageUrl}`);
         continue;
       }
 
-      const dimensions = await getImageDimensions(pngBuffer);
+      const dimensions = await getImageDimensions(pdfImageBuffer);
       if (!dimensions) {
         doc.fontSize(12).text(`${i + 1}. ${image.imageUrl}`);
         continue;
@@ -170,7 +180,7 @@ export async function generateCatalogoPdf(userId: string, catalogoId: string, re
 
       const x = doc.page.margins.left + (contentWidth - displayWidth) / 2;
       const y = doc.y;
-      doc.image(pngBuffer, x, y, { width: displayWidth, height: displayHeight });
+      doc.image(pdfImageBuffer, x, y, { width: displayWidth, height: displayHeight });
       doc.y = y + displayHeight + 10;
     }
 
