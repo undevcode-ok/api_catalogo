@@ -1,4 +1,4 @@
-﻿# catalog-backend
+# catalog-backend
 
 Backend Node.js + TypeScript + Express + Sequelize + MySQL.
 
@@ -91,17 +91,34 @@ Ejemplo create:
 }
 ```
 
+## Items
+
+- POST /api/items
+- POST /api/items/bulk
+- GET /api/items?catalogoId=... 
+- GET /api/items/:itemUuid?catalogoId=...
+- PUT /api/items/:itemUuid
+- DELETE /api/items/:itemUuid
+- PATCH /api/items/:itemUuid/position
+- POST /api/items/image
+
+Carga masiva (multipart/form-data):
+- Campo `catalogoId`
+- Campo `items` (JSON array con `name`, `description`, `price`)
+- Campo `images` (1 a 20 archivos, mismo orden que `items`)
+
 ## Imagenes de catalogo (S3)
 
-- POST /api/catalogos/:id/images
-- GET /api/catalogos/:id/images
-- PUT /api/catalogos/:id/images/:imageId
-- DELETE /api/catalogos/:id/images/:imageId
+- POST /api/images
+- GET /api/images?catalogoId=...
+- PUT /api/images/:imageId
+- DELETE /api/images/:imageId
 
 Upload (multipart/form-data):
 - Campo `images` (1 a 10 archivos)
-- Campo opcional `folder` (por defecto `catalogos`)
+- Campo `catalogoId`
 
 ## Postman
 
 Hay una coleccion en `postman_collection.json` para probar los endpoints.
+
