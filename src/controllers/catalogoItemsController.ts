@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError";
 import {
   createCatalogoItem,
   createCatalogoItems,
+  createCatalogoItemsWithImages,
   deleteCatalogoItemByUuid,
   getCatalogoItemByUuid,
   listCatalogoItems,
@@ -60,6 +61,91 @@ export async function createFromBody(req: Request, res: Response, next: NextFunc
     const item = await createCatalogoItem(userId, role, catalogoId, payload);
     logger.info("[catalogo-items] create", { userId, catalogoId, itemUuid: item.uuid });
     res.status(201).json(item);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createBulk(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { id: userId, role } = requireUser(req);
+    const catalogId = String(req.body?.catalogoId ?? "").trim();
+    if (!catalogId) {
+      throw new ApiError(400, "catalogoId requerido");
+    }
+
+    const files = req.files as Express.Multer.File[] | undefined;
+    if (!files || files.length === 0) {
+      throw new ApiError(400, "Se requiere al menos 1 imagen");
+    }
+
+    const rawItems = req.body?.items;
+    if (!rawItems) {
+      throw new ApiError(400, "items requeridos");
+    }
+
+    let itemsPayload: unknown;
+    try {
+      itemsPayload = typeof rawItems === "string" ? JSON.parse(rawItems) : rawItems;
+    } catch {
+      throw new ApiError(400, "items inválidos");
+    }
+
+    if (!Array.isArray(itemsPayload)) {
+      throw new ApiError(400, "items inválidos");
+    }
+
+    if (itemsPayload.length !== files.length) {
+      throw new ApiError(400, "items e imágenes deben tener la misma cantidad");
+    }
+
+    if (itemsPayload.length > 20) {
+      throw new ApiError(400, "maximo 20 items");
+    }
+
+    const uploads = await Promise.all(
+      files.map((file) => ImageS3Service.uploadImage(file, "catalogo-items"))
+    );
+
+    const itemsInput = itemsPayload.map((item, index) => {
+      if (!item || typeof item !== "object") {
+        throw new ApiError(400, "items inválidos");
+      }
+      const payload = item as { name?: unknown; description?: unknown; price?: unknown };
+      const name = String(payload.name ?? "").trim();
+      if (!name) {
+        throw new ApiError(400, "name requerido");
+      }
+
+      const priceValue = payload.price;
+      if (priceValue === null || priceValue === undefined) {
+        throw new ApiError(400, "price requerido");
+      }
+      const price = typeof priceValue === "number" ? priceValue : String(priceValue).trim();
+      if (!price) {
+        throw new ApiError(400, "price requerido");
+      }
+
+      const description = payload.description ?? null;
+      if (typeof description !== "string" && description !== null && description !== undefined) {
+        throw new ApiError(400, "description inválido");
+      }
+
+      return {
+        name,
+        description: description ?? null,
+        price,
+        image: uploads[index].url
+      };
+    });
+
+    const items = await createCatalogoItemsWithImages(userId, role, catalogId, itemsInput);
+    logger.info("[catalogo-items] create bulk images", {
+      userId,
+      catalogId,
+      count: items.length
+    });
+    res.status(201).json({ items });
   } catch (error) {
     next(error);
   }

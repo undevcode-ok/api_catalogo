@@ -3,6 +3,7 @@ import { authMiddleware } from "../middlewares/auth";
 import { validateBody } from "../middlewares/validate";
 import { uploadMiddleware } from "../s3-image-module";
 import {
+  createBulk,
   createFromBody,
   getByUuidFromParams,
   listByCatalog,
@@ -29,6 +30,7 @@ function maybeUploadItemImage(req: Request, res: Response, next: NextFunction): 
 }
 
 router.post("/items", authMiddleware, maybeUploadItemImage, validateBody(createCatalogoItemWithCatalogSchema), createFromBody);
+router.post("/items/bulk", authMiddleware, uploadMiddleware.array("images", 20), createBulk);
 router.get("/items", authMiddleware, listByCatalog);
 router.get("/items/:itemUuid", authMiddleware, getByUuidFromParams);
 router.put("/items/:itemUuid", authMiddleware, validateBody(updateCatalogoItemWithCatalogOnlySchema), updateByUuidFromParams);

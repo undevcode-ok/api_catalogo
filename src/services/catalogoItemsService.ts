@@ -11,6 +11,13 @@ export type CatalogoItemInput = {
   image?: string | null;
 };
 
+export type CatalogoItemBulkInput = {
+  name: string;
+  description?: string | null;
+  price: string | number;
+  image: string;
+};
+
 type CatalogoItemUpdate = {
   name?: string;
   description?: string | null;
@@ -121,6 +128,39 @@ export async function createCatalogoItems(
       description: input.description ?? null,
       price: normalizePrice(input.price) ?? null,
       image: input.image ?? null,
+      sortOrder
+    };
+  });
+
+  const items = await CatalogoItem.bulkCreate(itemsData);
+  return items;
+}
+
+export async function createCatalogoItemsWithImages(
+  userId: string,
+  role: string,
+  catalogId: string,
+  inputs: CatalogoItemBulkInput[]
+): Promise<CatalogoItem[]> {
+  if (inputs.length === 0) {
+    throw new ApiError(400, "Items requeridos");
+  }
+
+  await requireCatalogo(userId, catalogId);
+  await enforceItemLimit(userId, role, catalogId, inputs.length);
+
+  const maxSort = await CatalogoItem.max("sortOrder", { where: { catalogId } });
+  let nextSort = (Number.isFinite(maxSort) ? Number(maxSort) : 0) + SORT_STEP;
+
+  const itemsData = inputs.map((input) => {
+    const sortOrder = nextSort;
+    nextSort += SORT_STEP;
+    return {
+      catalogId,
+      name: input.name,
+      description: input.description ?? null,
+      price: normalizePrice(input.price) ?? null,
+      image: input.image,
       sortOrder
     };
   });

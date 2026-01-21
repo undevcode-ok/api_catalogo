@@ -24,6 +24,14 @@ const priceField = z
   ])
   .optional();
 
+const requiredPriceField = z.union([
+  z.number({ invalid_type_error: "price inválido" }).positive("price debe ser positivo"),
+  z
+    .string({ invalid_type_error: "price inválido" })
+    .trim()
+    .regex(/^\d+(\.\d{1,2})?$/, "price inválido")
+]);
+
 const urlField = z
   .string({ invalid_type_error: "image inválida" })
   .trim()
@@ -51,6 +59,17 @@ export const createCatalogoItemSchema = z.union([
 
 export const createCatalogoItemWithCatalogSchema = baseCreateSchema.extend({
   catalogoId: catalogoIdSchema
+});
+
+const bulkItemSchema = z.object({
+  name: trimmedString,
+  description: optionalNullableTrimmed,
+  price: requiredPriceField
+});
+
+export const createCatalogoItemBulkSchema = z.object({
+  catalogoId: catalogoIdSchema,
+  items: z.array(bulkItemSchema).min(1, "items requeridos").max(20, "maximo 20 items")
 });
 
 export const updateCatalogoItemSchema = z.object({
